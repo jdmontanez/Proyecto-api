@@ -21,26 +21,130 @@ db = client["ISIS2304D10202610"]
 def inicio():
     return {"estado": "API funcionando correctamente"}
 
-@app.get('/api/bares/{bar_id}/comentarios')
-def get_comentarios(bar_id: int):
-    comentarios = list(db["comentarios"].find({"bar_id": bar_id}, {"_id": 0}))
-    return comentarios
+# RF4 -> consultar reseñas de un hotel
+@app.get('/api/hoteles/{hotel}/reviews')
+def get_reviews(hotel: str):
 
-@app.post('/api/bares/{bar_id}/comentarios')
-def post_comentario(bar_id: int, datos: dict):
-    datos['bar_id'] = bar_id
-    datos['fecha']  = datetime.now().isoformat()
-    db["comentarios"].insert_one(datos)
-    return {'mensaje': 'Comentario guardado'}
+    reviews = list(
+        db["reviews"].find(
+            {"hotel.nombre": hotel},
+            {"_id": 0}
+        )
+    )
 
-@app.get('/api/bares/{bar_id}/eventos')
-def get_eventos(bar_id: int):
-    eventos = list(db["eventos"].find({"bar_id": bar_id}, {"_id": 0}))
-    return eventos
+    return reviews
 
-@app.post('/api/bares/{bar_id}/eventos')
-def post_evento(bar_id: int, datos: dict):
-    datos['bar_id'] = bar_id
-    datos['fecha_creacion'] = datetime.now().isoformat()
-    db["eventos"].insert_one(datos)
-    return {'mensaje': 'Evento guardado'}
+
+# RF1 -> crear reseña
+@app.post('/api/hoteles/{hotel}/reviews')
+def post_review(hotel: str, datos: dict):
+
+    # validar si ya existe review para la reserva
+    existe = db["reviews"].find_one({
+        "idReserva": datos["idReserva"]
+    })
+
+    if existe:
+        return {
+            "error": "La reserva ya tiene reseña"
+        }
+
+    datos["hotel"] = {
+        "nombre": hotel
+    }
+
+    datos["fechaCreacion"] = datetime.now().isoformat()
+
+    datos["estado"] = "publicada"
+
+    datos["utiles"] = 0
+
+    datos["destacada"] = False
+
+    db["reviews"].insert_one(datos)
+
+    return {
+        "mensaje": "Review guardada"
+    }
+
+
+# RF2 -> editar reseña
+@app.put('/api/reviews/{id_reserva}')
+def editar_review(id_reserva: int, datos: dict):
+
+    db["reviews"].update_one(
+        {"idReserva": id_reserva},
+
+        {
+            "$set": {
+                "comentario": datos["comentario"],
+                "calificacion": datos["calificacion"]
+            }
+        }
+    )
+
+    return {
+        "mensaje": "Review actualizada"
+    }
+
+
+# RF3 -> eliminar reseña (soft delete)
+@app.delete('/api/reviews/{id_reserva}')
+def eliminar_review(id_reserva: int):
+
+    db["reviews"].update_one(
+        {"idReserva": id_reserva},
+
+        {
+            "$set": {
+                "estado": "eliminada"
+            }
+        }
+    )
+
+    return {
+        "mensaje": "Review eliminada"
+    }
+
+
+# RF5 -> marcar útil
+@app.put('/api/reviews/{id_reserva}/util')
+def marcar_util(id_reserva: int):
+
+    db["reviews"].update_one(
+        {"idReserva": id_reserva},
+
+        {
+            "$inc": {
+                "utiles": 1
+            }
+        }
+    )
+
+    return {
+        "mensaje": "Voto registrado"
+    }
+
+
+# RF7 -> responder reseña
+@app.put('/api/reviews/{id_reserva}/respuesta')
+def responder_review(id_reserva: int, datos: dict):
+
+    db["reviews"].update_one(
+
+        {"idReserva": id_reserva},
+
+        {
+            "$set": {
+                "respuestaAdmin": {
+                    "administrador": datos["administrador"],
+                    "respuesta": datos["respuesta"],
+                    "fecha": datetime.now().isoformat()
+                }
+            }
+        }
+    )
+
+    return {
+        "mensaje": "Respuesta agregada"
+    }
