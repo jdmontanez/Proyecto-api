@@ -25,6 +25,17 @@ def get_reviews(hotel: str):
         )
     )
     return reviews
+
+# RF6 -> historial de reseñas propias
+@app.get('/api/clientes/{nombre}/reviews')
+def get_reviews_cliente(nombre: str):
+    reviews = list(
+        db["reviews"].find(
+            {"cliente.nombre": nombre},
+            {"_id": 0}
+        )
+    )
+    return reviews
 # RF1 -> crear reseña
 @app.post('/api/hoteles/{hotel}/reviews')
 def post_review(hotel: str, datos: dict):
