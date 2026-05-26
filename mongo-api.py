@@ -129,17 +129,16 @@ def responder_review(id_reserva: str, datos: dict):
     return {
         "mensaje": "Respuesta guardada"
     }
+
 # RF9 -> destacar reseña
 @app.put('/api/reviews/{id_reserva}/destacar')
 def destacar_review(id_reserva: str):
-    # Quitar destacada anterior del mismo hotel
     review = db["reviews"].find_one({"idReserva": id_reserva})
     if review:
         db["reviews"].update_many(
             {"hotel.nombre": review["hotel"]["nombre"]},
             {"$set": {"destacada": 0}}
         )
-    # Destacar la nueva
     db["reviews"].update_one(
         {"idReserva": id_reserva},
         {"$set": {"destacada": 1}}
@@ -256,7 +255,8 @@ def comparativo_ciudad(ciudad: str):
             "bajo_promedio": round(r["promedio"], 1) < promedio_ciudad,
             "promedio_ciudad": promedio_ciudad
         }
-
+        for r in resultado
+    ]
 
 # Script temporal para agregar ciudad a las reseñas
 @app.get('/api/fix/ciudades')
@@ -286,5 +286,3 @@ def fix_ciudades():
         )
 
     return {"mensaje": "Ciudades actualizadas correctamente"}
-        for r in resultado
-    ]
