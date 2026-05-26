@@ -256,5 +256,35 @@ def comparativo_ciudad(ciudad: str):
             "bajo_promedio": round(r["promedio"], 1) < promedio_ciudad,
             "promedio_ciudad": promedio_ciudad
         }
+
+
+# Script temporal para agregar ciudad a las reseñas
+@app.get('/api/fix/ciudades')
+def fix_ciudades():
+    hoteles = {
+        "Hotel Palacio del Sol": "Bogotá",
+        "Hotel Caribe Dorado": "Barranquilla",
+        "Hotel Las Palmas Real": "Medellín",
+        "Hotel Bahia Encantada": "Cartagena",
+        "Hotel Montana Verde": "Manizales",
+        "Hotel Rio Grande": "Cali",
+        "Hotel El Conquistador": "Cúcuta",
+        "Hotel Sierra Nevada": "Santa Marta",
+        "Hotel Oasis del Llano": "Villavicencio",
+        "Hotel Torre Blanca": "Bucaramanga",
+        "Hotel Narino Imperial": "Pasto",
+        "Hotel Los Flamencos": "Valledupar",
+        "Hotel Tierra Viva": "Pereira",
+        "Hotel Quindio Real": "Armenia",
+        "Hotel Bahia del Pacifico": "Buenaventura"
+    }
+
+    for nombre, ciudad in hoteles.items():
+        db["reviews"].update_many(
+            {"hotel.nombre": nombre},
+            {"$set": {"hotel.ciudad": ciudad}}
+        )
+
+    return {"mensaje": "Ciudades actualizadas correctamente"}
         for r in resultado
     ]
