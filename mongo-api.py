@@ -3,18 +3,24 @@ from fastapi.middleware.cors import CORSMiddleware
 from pymongo import MongoClient
 from datetime import datetime
 import os
+
 app = FastAPI()
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"]
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+    allow_credentials=True
 )
+
 client = MongoClient(os.environ["MONGO_URI"])
 db = client["ISIS2304D10202610"]
+
 @app.get("/")
 def inicio():
     return {"estado": "API funcionando correctamente"}
+
 # RF4 -> consultar reseñas de un hotel
 @app.get('/api/hoteles/{hotel}/reviews')
 def get_reviews(hotel: str):
@@ -36,6 +42,7 @@ def get_reviews_cliente(nombre: str):
         )
     )
     return reviews
+
 # RF1 -> crear reseña
 @app.post('/api/hoteles/{hotel}/reviews')
 def post_review(hotel: str, datos: dict):
@@ -57,6 +64,7 @@ def post_review(hotel: str, datos: dict):
     return {
         "mensaje": "Review guardada"
     }
+
 # RF2 -> editar reseña
 @app.put('/api/reviews/{id_reserva}')
 def editar_review(id_reserva: str, datos: dict):
@@ -72,6 +80,7 @@ def editar_review(id_reserva: str, datos: dict):
     return {
         "mensaje": "Review actualizada"
     }
+
 # RF3 -> eliminar reseña (soft delete)
 @app.delete('/api/reviews/{id_reserva}')
 def eliminar_review(id_reserva: str):
@@ -86,6 +95,7 @@ def eliminar_review(id_reserva: str):
     return {
         "mensaje": "Review eliminada"
     }
+
 # RF5 -> marcar útil
 @app.put('/api/reviews/{id_reserva}/util')
 def marcar_util(id_reserva: str):
@@ -100,6 +110,7 @@ def marcar_util(id_reserva: str):
     return {
         "mensaje": "Voto registrado"
     }
+
 # RF7 -> responder reseña
 @app.put('/api/reviews/{id_reserva}/respuesta')
 def responder_review(id_reserva: str, datos: dict):
@@ -115,3 +126,6 @@ def responder_review(id_reserva: str, datos: dict):
             }
         }
     )
+    return {
+        "mensaje": "Respuesta guardada"
+    }
