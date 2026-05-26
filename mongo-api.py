@@ -145,3 +145,116 @@ def destacar_review(id_reserva: str):
         {"$set": {"destacada": 1}}
     )
     return {"mensaje": "Reseña destacada"}
+
+# RFC1 -> Top 10 hoteles por calificación promedio
+@app.get('/api/hoteles/top')
+def top_hoteles():
+    pipeline = [
+        {
+            "$group": {
+                "_id": "$hotel.nombre",
+                "promedio": {"$avg": "$calificacion"},
+                "total_reviews": {"$sum": 1}
+            }
+        },
+        {
+            "$sort": {"promedio": -1}
+        },
+        {
+            "$limit": 10
+        }
+    ]
+    resultado = list(db["reviews"].aggregate(pipeline))
+    return [
+        {
+            "hotel": r["_id"],
+            "promedio": round(r["promedio"], 1),
+            "total_reviews": r["total_reviews"]
+        }
+        for r in resultado
+    ]
+
+# RFC2 -> Evolución de reputación de un hotel mes a mes
+@app.get('/api/hoteles/{hotel}/evolucion')
+def evolucion_hotel(hotel: str, anio: int):
+    pipeline = [
+        {
+            "$match": {
+                "hotel.nombre": hotel,
+                "fechaCreacion": {
+                    "$regex": f"^{anio}"
+                }
+            }
+        },
+        {
+            "$group": {
+                "_id": {"$substr": ["$fechaCreacion", 0, 7]},
+                "promedio": {"$avg": "$calificacion"},
+                "total": {"$sum": 1}
+            }
+        },
+        {
+            "$sort": {"_id": 1}
+        }
+    ]
+    resultado = list(db["reviews"].aggregate(pipeline))
+    return [
+        {
+            "mes": r["_id"],
+            "promedio": round(r["promedio"], 1),
+            "total": r["total"]
+        }
+        for r in resultado
+    ]
+
+# RFC3 -> Perfil comparativo de hoteles por ciudad
+@app.get('/api/ciudades/{ciudad}/hoteles')
+def comparativo_ciudad(ciudad: str):
+    pipeline = [
+        {
+            "$match": {
+                "hotel.ciudad": ciudad
+            }
+        },
+        {
+            "$group": {
+                "_id": "$hotel.nombre",
+                "promedio": {"$avg": "$calificacion"},
+                "total": {"$sum": 1},
+                "con_respuesta": {
+                    "$sum": {
+                        "$cond": [{"$ifNull": ["$respuestaAdmin", False]}, 1, 0]
+                    }
+                },
+                "destacadas": {
+                    "$sum": {
+                        "$cond": [{"$eq": ["$destacada", 1]}, 1, 0]
+                    }
+                }
+            }
+        },
+        {
+            "$sort": {"promedio": -1}
+        }
+    ]
+    resultado = list(db["reviews"].aggregate(pipeline))
+
+    if not resultado:
+        return []
+
+    promedio_ciudad = round(
+        sum(r["promedio"] for r in resultado) / len(resultado), 1
+    )
+
+    return [
+        {
+            "hotel": r["_id"],
+            "promedio": round(r["promedio"], 1),
+            "total_reviews": r["total"],
+            "pct_con_respuesta": round((r["con_respuesta"] / r["total"]) * 100, 1),
+            "pct_destacadas": round((r["destacadas"] / r["total"]) * 100, 1),
+            "bajo_promedio": round(r["promedio"], 1) < promedio_ciudad,
+            "promedio_ciudad": promedio_ciudad
+        }
+        for r in resultado
+    ]
