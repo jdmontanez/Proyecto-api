@@ -258,3 +258,21 @@ def comparativo_ciudad(ciudad: str):
         for r in resultado
     ]
 
+# Script temporal para agregar fechas a reseñas sin fechaCreacion
+@app.get('/api/fix/fechas')
+def fix_fechas():
+    import random
+    reviews = list(db["reviews"].find({"fechaCreacion": {"$exists": False}}))
+    
+    for r in reviews:
+        anio = random.choice([2023, 2024, 2025])
+        mes = random.randint(1, 12)
+        dia = random.randint(1, 28)
+        fecha = f"{anio}-{mes:02d}-{dia:02d}T00:00:00"
+        db["reviews"].update_one(
+            {"_id": r["_id"]},
+            {"$set": {"fechaCreacion": fecha}}
+        )
+    
+    return {"mensaje": f"{len(reviews)} reseñas actualizadas con fechas"}
+
