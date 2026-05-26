@@ -129,3 +129,19 @@ def responder_review(id_reserva: str, datos: dict):
     return {
         "mensaje": "Respuesta guardada"
     }
+# RF9 -> destacar reseña
+@app.put('/api/reviews/{id_reserva}/destacar')
+def destacar_review(id_reserva: str):
+    # Quitar destacada anterior del mismo hotel
+    review = db["reviews"].find_one({"idReserva": id_reserva})
+    if review:
+        db["reviews"].update_many(
+            {"hotel.nombre": review["hotel"]["nombre"]},
+            {"$set": {"destacada": 0}}
+        )
+    # Destacar la nueva
+    db["reviews"].update_one(
+        {"idReserva": id_reserva},
+        {"$set": {"destacada": 1}}
+    )
+    return {"mensaje": "Reseña destacada"}
